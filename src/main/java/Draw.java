@@ -11,14 +11,14 @@ import java.util.*;
 
 public class Draw implements GLEventListener {
 
-  private final double ROTATE_SPEED = 6;
+  private final double ROTATE_SPEED = 0;
   private final double LIGHT_ROTATE_SPEED = 0;
 
   private final float SIZE = 1; //relative size
-  private final double SCENE_SCALE = -3;
+  private final double SCENE_SCALE = -2;
   private final long MORPHING_DELAY;
 
-  private double rotateAngle = 0;
+  private double rotateAngle = 45;
   private double lightRotateAngle = 0;
 
   private GL2 gl;
@@ -32,6 +32,7 @@ public class Draw implements GLEventListener {
   List<float[]> cubeVertexes;
   int MORPHING_STEPS;
   List<float[]> figureVertexes;
+  List<float[]> figureNorms;
 
   boolean startMorphingDisplayFlag;
 
@@ -62,6 +63,8 @@ public class Draw implements GLEventListener {
     for (int i = 0; i < torusVertexes.size(); i++) {
       figureVertexes.add(new float[]{torusVertexes.get(i)[0], torusVertexes.get(i)[1], torusVertexes.get(i)[2]});
     }
+
+    findNorms();
 
     /*Timer timer = new Timer();
     timer.schedule(new TimerTask() {
@@ -141,32 +144,72 @@ public class Draw implements GLEventListener {
 
     gl.glBegin(GL2.GL_TRIANGLE_STRIP);
 
-    List<float[]> p = new ArrayList<>(3);
-    for (int i = 0; i < 3; i++) {
-      p.add(null);
-    }
-
-    if (startMorphingDisplayFlag) {
+    /*if (startMorphingDisplayFlag) {
       for (int i = 0; i < figureVertexes.size(); i++) {
         for (int j = 0; j < figureVertexes.size(); j++) {
           gl.glVertex3fv(figureVertexes.get(i), 0);
           gl.glVertex3fv(figureVertexes.get(j), 0);
         }
       }
-    }
-    else {
-      gl.glVertex3fv(figureVertexes.get(0), 0);
-      gl.glVertex3fv(figureVertexes.get(1), 0);
-
-      for (int i = 2; i < figureVertexes.size(); i++) {
-        updateTriangleVertexes(figureVertexes, p, i);
-        gl.glNormal3fv(triangleNorm(p.get(0), p.get(1), p.get(2)), 0);
+    } else {*/
+      for (int i = 0; i < figureVertexes.size(); i++) {
+        gl.glNormal3fv(figureNorms.get(i), 0);
         gl.glVertex3fv(figureVertexes.get(i), 0);
       }
-    }
+    //}
     gl.glEnd();
 
     gl.glPopMatrix();
+  }
+
+  private void findNorms() {
+    List<float[]> p = new ArrayList<>(3);
+    for (int i = 0; i < 3; i++) {
+      p.add(null);
+    }
+    figureNorms = new ArrayList<>(figureVertexes.size());
+    float[] norm1;
+    float[] norm2;
+    float[] norm3;
+
+    //первая вершина
+    updateTriangleVertexes(figureVertexes, p, 2);
+    norm1 = triangleNorm(p.get(0), p.get(1), p.get(2));
+    figureNorms.add(norm1);
+
+    //вторая
+    updateTriangleVertexes(figureVertexes, p, 3);
+    norm2 = triangleNorm(p.get(0), p.get(1), p.get(2));
+    figureNorms.add(new float[]{
+        (norm1[0] + norm2[0]) / 2,
+        (norm1[1] + norm2[1]) / 2,
+        (norm1[2] + norm2[2]) / 2});
+
+    for (int i = 2; i < figureVertexes.size() - 2; i++) {
+      updateTriangleVertexes(figureVertexes, p, i);
+      norm1 = triangleNorm(p.get(0), p.get(1), p.get(2));
+      updateTriangleVertexes(figureVertexes, p, i + 1);
+      norm2 = triangleNorm(p.get(0), p.get(1), p.get(2));
+      updateTriangleVertexes(figureVertexes, p, i + 2);
+      norm3 = triangleNorm(p.get(0), p.get(1), p.get(2));
+      figureNorms.add(new float[]{
+          (norm1[0] + norm2[0] + norm3[0]) / 3,
+          (norm1[1] + norm2[1] + norm3[1]) / 3,
+          (norm1[2] + norm2[2] + norm3[2]) / 3});
+    }
+
+    //предпоследняя
+    updateTriangleVertexes(figureVertexes, p, figureVertexes.size() - 1);
+    norm1 = triangleNorm(p.get(0), p.get(1), p.get(2));
+    updateTriangleVertexes(figureVertexes, p, figureVertexes.size() - 2);
+    norm2 = triangleNorm(p.get(0), p.get(1), p.get(2));
+    figureNorms.add(new float[]{
+        (norm1[0] + norm2[0]) / 2,
+        (norm1[1] + norm2[1]) / 2,
+        (norm1[2] + norm2[2]) / 2});
+
+    //последняя
+    figureNorms.add(norm1);
   }
 
   private static void updateTriangleVertexes(List<float[]> vertexes, List<float[]> triangleVertexes, int curIndex) {
